@@ -1,0 +1,22 @@
+{% load i18n %}
+{# Prints the selected rows; with no selection (or "select all"), everything matching the current filters #}
+<a href="{{ print_url }}?object_type={{ object_type }}&amp;{{ request.GET.urlencode }}&amp;return_url={{ return_url|urlencode }}"
+   class="btn btn-outline-secondary" id="asset-labels-print"
+   title="{% trans "Print labels for the selected rows, or for all rows matching the current filters" %}">
+  <i class="mdi mdi-label-multiple-outline" aria-hidden="true"></i> {% trans "Print Labels" %}
+</a>
+<script>
+  document.getElementById('asset-labels-print').addEventListener('click', function (event) {
+    if (document.querySelector('#select-all:checked')) {
+      return;
+    }
+    const pks = Array.from(document.querySelectorAll('input[name="pk"]:checked'), el => el.value);
+    if (!pks.length) {
+      return;
+    }
+    event.preventDefault();
+    const params = new URLSearchParams({object_type: '{{ object_type|escapejs }}', return_url: '{{ return_url|escapejs }}'});
+    pks.forEach(pk => params.append('pk', pk));
+    window.location = '{{ print_url|escapejs }}?' + params;
+  });
+</script>

@@ -1,0 +1,122 @@
+{% extends 'generic/_base.html' %}
+{% load form_helpers %}
+{% load helpers %}
+{% load i18n %}
+
+{% block title %}{% trans "Print Labels" %}{% endblock %}
+
+{% block subtitle %}
+  <div class="text-secondary">
+    {% blocktrans trimmed count count=rows|length with type=model|meta:"verbose_name" types=model|meta:"verbose_name_plural" %}
+      {{ count }} {{ type }}
+    {% plural %}
+      {{ count }} {{ types }}
+    {% endblocktrans %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <form method="post" action="{% url 'plugins:netbox_asset_labels:print' %}" id="label-print-form"
+        data-bound="{{ form.is_bound|yesno:'true,false' }}">
+    {% csrf_token %}
+    <input type="hidden" name="object_type" value="{{ object_type }}" />
+    <input type="hidden" name="return_url" value="{{ return_url }}" />
+    {% for row in rows %}
+      <input type="hidden" name="pk" value="{{ row.object.pk }}" />
+    {% endfor %}
+
+    <div class="row">
+      <div class="col col-12 col-lg-4">
+        <div class="card">
+          <h2 class="card-header">{% trans "Print" %}</h2>
+          <div class="card-body">
+            {% render_errors form %}
+            {% render_field form.method %}
+            <div data-print-method="network">
+              {% render_field form.printer %}
+            </div>
+            <div data-print-method="usb">
+              {% render_field form.cut_mode %}
+              <div class="alert alert-warning d-none" id="usb-unsupported">
+                {% blocktrans trimmed %}
+                  USB printing needs Chrome or Edge, and NetBox served over HTTPS.
+                {% endblocktrans %}
+              </div>
+            </div>
+            <div data-print-method="download">
+              {% render_field form.file_format %}
+            </div>
+            {% render_field form.template %}
+            {% render_field form.copies %}
+            {% render_field form.tape %}
+            {% if not form.fields.printer.queryset %}
+              <div class="text-secondary small" data-print-method="usb download">
+                {% url 'plugins:netbox_asset_labels:labelprinter_list' as printers_url %}
+                {% blocktrans trimmed %}
+                  No <a href="{{ printers_url }}">network printers</a> available to you. Printing on one requires
+                  the <code>print</code> action on the label printer.
+                {% endblocktrans %}
+              </div>
+            {% endif %}
+            <div id="usb-result" class="alert d-none mt-3 mb-0" role="status"></div>
+          </div>
+          <div class="card-footer text-end">
+            <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+            <button type="submit" formmethod="get" class="btn btn-outline-primary">
+              <i class="mdi mdi-refresh"></i> {% trans "Update preview" %}
+            </button>
+            <button type="submit" class="btn btn-primary" id="label-print-submit" {% if not rows %}disabled{% endif %}
+                    data-label-network="{% trans "Print" %}" data-label-usb="{% trans "Print via USB" %}"
+                    data-label-download="{% trans "Download" %}">
+              <i class="mdi mdi-printer"></i> <span>{% trans "Print" %}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col col-12 col-lg-8">
+        <div class="card">
+          <h2 class="card-header">
+            {% blocktrans with tape=tape.label %}Preview ({{ tape }} tape){% endblocktrans %}
+          </h2>
+          {% if too_many %}
+            <div class="alert alert-warning m-3 mb-0">
+              {% blocktrans %}Only the first {{ max_labels }} objects are shown. Narrow your selection to print.{% endblocktrans %}
+            </div>
+          {% endif %}
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>{{ model|meta:"verbose_name"|bettertitle }}</th>
+                <th>{% trans "Template" %}</th>
+                <th>{% trans "Label" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td>{{ row.object|linkify }}</td>
+                  <td>
+                    {% if row.template.pk %}{{ row.template|linkify }}{% elif row.template %}<span class="text-secondary">{{ row.template }}</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if row.error %}
+                      <span class="text-danger">{{ row.error }}</span>
+                    {% else %}
+                      <img src="{{ row.preview }}" alt="{% trans "Label preview" %}" class="asset-label-preview" />
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="3" class="text-center text-secondary">{% trans "No objects selected" %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </form>
+  {% include 'netbox_asset_labels/inc/preview_style.html' %}
+  {{ usb_config|json_script:"usb-config" }}
+  {% include 'netbox_asset_labels/inc/usb_print.html' %}
+{% endblock %}

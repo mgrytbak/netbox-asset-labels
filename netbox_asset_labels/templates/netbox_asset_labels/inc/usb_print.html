@@ -1,0 +1,202 @@
+<script>
+/*
+ * Output selection for the print page, and printing to a Brother P-touch connected to
+ * this computer by USB (WebUSB, Chrome/Edge only). The printer is asked which tape is
+ * loaded, NetBox renders and encodes the labels for that tape (method=usb), and the
+ * resulting printer data is sent to the printer from the browser.
+ */
+(() => {
+  const form = document.getElementById('label-print-form');
+  const method = form.elements['method'];
+  const submit = document.getElementById('label-print-submit');
+  const result = document.getElementById('usb-result');
+  const config = JSON.parse(document.getElementById('usb-config').textContent);
+  const usbSupported = 'usb' in navigator && window.isSecureContext;
+  const STORAGE_KEY = 'netbox_asset_labels.method';
+
+  const BROTHER_VENDOR_ID = 0x04f9;
+  const PRINTER_CLASS = 0x07;
+  const STATUS_LENGTH = 32;
+  const STATUS_COMPLETED = 0x01;
+  const STATUS_ERROR = 0x02;
+  // Invalidate, initialize, status request
+  const STATUS_REQUEST = new Uint8Array([...new Array(100).fill(0), 0x1b, 0x40, 0x1b, 0x69, 0x53]);
+
+  // Show the fields of the selected output method
+  function update() {
+    form.querySelectorAll('[data-print-method]').forEach(el => {
+      el.classList.toggle('d-none', !el.dataset.printMethod.split(' ').includes(method.value));
+    });
+    submit.querySelector('span').textContent = submit.dataset[`label${method.value[0].toUpperCase()}${method.value.slice(1)}`];
+    submit.querySelector('i').className = method.value === 'download' ? 'mdi mdi-download' : 'mdi mdi-printer';
+    document.getElementById('usb-unsupported').classList.toggle('d-none', usbSupported);
+    submit.disabled = !form.querySelector('input[name="pk"]') || (method.value === 'usb' && !usbSupported);
+    try { localStorage.setItem(STORAGE_KEY, method.value); } catch (e) {}
+  }
+
+  // Restore the last used method, unless the form shows a submitted choice
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (form.dataset.bound !== 'true' && saved && [...method.options].some(o => o.value === saved)) {
+      method.value = saved;
+      method.tomselect?.setValue(saved, true);
+    }
+  } catch (e) {}
+  method.addEventListener('change', update);
+  update();
+
+  function showResult(message, level) {
+    result.className = `alert alert-${level} mt-3 mb-0`;
+    result.textContent = message;
+  }
+
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const message = (key, values = {}) => config.messages[key].replace(/{(\w+)}/g, (_, name) => values[name]);
+
+  async function openPrinter() {
+    let device = (await navigator.usb.getDevices()).find(d => d.vendorId === BROTHER_VENDOR_ID);
+    if (!device) {
+      device = await navigator.usb.requestDevice({filters: [{vendorId: BROTHER_VENDOR_ID}]});
+    }
+    await device.open();
+    if (device.configuration === null) {
+      await device.selectConfiguration(1);
+    }
+    for (const iface of device.configuration.interfaces) {
+      const alternate = iface.alternates.find(a => a.interfaceClass === PRINTER_CLASS);
+      if (!alternate) {
+        continue;
+      }
+      await device.claimInterface(iface.interfaceNumber);
+      if (iface.alternates.length > 1) {
+        await device.selectAlternateInterface(iface.interfaceNumber, alternate.alternateSetting);
+      }
+      const endpoint = direction => alternate.endpoints.find(e => e.type === 'bulk' && e.direction === direction);
+      return {device, out: endpoint('out').endpointNumber, in: endpoint('in')?.endpointNumber};
+    }
+    await device.close();
+    throw new Error(message('noInterface'));
+  }
+
+  // Reads 32-byte status replies. Keeps one transfer outstanding, as WebUSB transfers
+  // cannot be cancelled when a read times out.
+  function statusReader(printer) {
+    let pending = null;
+    let buffer = new Uint8Array(0);
+    return async timeout => {
+      if (printer.in === undefined) {
+        return null;
+      }
+      const deadline = Date.now() + timeout;
+      while (buffer.length < STATUS_LENGTH) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+          return null;
+        }
+        pending ??= printer.device.transferIn(printer.in, 64);
+        const transfer = await Promise.race([pending, sleep(remaining).then(() => null)]);
+        if (transfer === null) {
+          return null;
+        }
+        pending = null;
+        if (!transfer.data || transfer.data.byteLength === 0) {
+          await sleep(50);  // idle printers answer reads with empty packets
+          continue;
+        }
+        const chunk = new Uint8Array(transfer.data.buffer, transfer.data.byteOffset, transfer.data.byteLength);
+        buffer = new Uint8Array([...buffer, ...chunk]);
+      }
+      const data = buffer.slice(0, STATUS_LENGTH);
+      buffer = buffer.slice(STATUS_LENGTH);
+      if (data[0] !== 0x80 || data[1] !== 0x20) {
+        throw new Error(message('invalidStatus'));
+      }
+      const errors = [
+        ...Object.entries(config.errors1).filter(([bit]) => data[8] & bit).map(([, msg]) => msg),
+        ...Object.entries(config.errors2).filter(([bit]) => data[9] & bit).map(([, msg]) => msg),
+      ];
+      return {errors, mediaWidth: data[10], mediaType: data[11], statusType: data[18]};
+    };
+  }
+
+  async function printUsb() {
+    let printer;
+    submit.disabled = true;
+    showResult(message('connecting'), 'secondary');
+    try {
+      printer = await openPrinter();
+      const readStatus = statusReader(printer);
+
+      await printer.device.transferOut(printer.out, STATUS_REQUEST);
+      const status = await readStatus(2000);
+      let tape = form.elements['tape'].value;
+      if (status) {
+        if (status.errors.length) {
+          throw new Error(status.errors.join(', '));
+        }
+        if (!(status.mediaWidth in config.tapes)) {
+          const media = config.mediaTypes[status.mediaType] ?? status.mediaType;
+          throw new Error(message('unsupportedTape', {width: status.mediaWidth, type: media}));
+        }
+        tape = status.mediaWidth;
+      }
+
+      showResult(message('rendering'), 'secondary');
+      const body = new FormData(form);
+      body.set('method', 'usb');
+      body.set('tape', tape);
+      const response = await fetch(form.action, {method: 'POST', body, credentials: 'same-origin'});
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      const count = parseInt(response.headers.get('X-Label-Count'), 10);
+      const job = new Uint8Array(await response.arrayBuffer());
+
+      showResult(message('printing'), 'secondary');
+      for (let offset = 0; offset < job.length; offset += 16384) {
+        await printer.device.transferOut(printer.out, job.subarray(offset, offset + 16384));
+      }
+
+      const tapeLabel = config.tapes[tape] ?? '';
+      if (!status) {
+        showResult(message('sentNoStatus', {count, tape: tapeLabel}), 'success');
+        return;
+      }
+      let completed = 0;
+      while (completed < count) {
+        const reply = await readStatus(10000 + 3000 * (count - completed));
+        if (reply === null) {
+          showResult(message('sent', {count, tape: tapeLabel}), 'success');
+          return;
+        }
+        if (reply.statusType === STATUS_ERROR || reply.errors.length) {
+          throw new Error(reply.errors.join(', ') || message('printerError'));
+        }
+        if (reply.statusType === STATUS_COMPLETED) {
+          completed++;
+        }
+      }
+      showResult(message('printed', {count, tape: tapeLabel}), 'success');
+    } catch (error) {
+      if (error.name === 'NotFoundError') {
+        showResult(message('noPrinter'), 'warning');
+      } else if (error.name === 'SecurityError' || error.name === 'NetworkError') {
+        showResult(`${error.message} ${message('inUse')}`, 'danger');
+      } else {
+        showResult(error.message, 'danger');
+      }
+    } finally {
+      try { await printer?.device.close(); } catch (e) {}
+      update();
+    }
+  }
+
+  form.addEventListener('submit', event => {
+    if (event.submitter?.getAttribute('formmethod') === 'get' || method.value !== 'usb') {
+      return;
+    }
+    event.preventDefault();
+    printUsb();
+  });
+})();
+</script>

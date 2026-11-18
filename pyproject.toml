@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-asset-labels"
+dynamic = ["version"]
+description = "NetBox plugin to print asset labels for devices and modules on Brother P-touch label printers"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Martin Grytbak" }]
+dependencies = [
+    "segno>=1.6",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "netbox_asset_labels.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["netbox_asset_labels*"]
+
+[tool.setuptools.package-data]
+netbox_asset_labels = ["templates/**/*.html"]

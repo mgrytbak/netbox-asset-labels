@@ -1,0 +1,31 @@
+{% extends "ui/panels/_base.html" %}
+{% load form_helpers %}
+{% load i18n %}
+
+{% block panel_content %}
+  <div class="card-body">
+    {% if preview %}
+      <img src="{{ preview }}" alt="{% trans "Label preview" %}" class="asset-label-preview" />
+    {% elif preview_error %}
+      <div class="alert alert-danger mb-0">{{ preview_error }}</div>
+    {% else %}
+      <span class="text-secondary">{% trans "No device or module to preview with" %}</span>
+    {% endif %}
+    {% if preview_object %}
+      <div class="text-secondary small mt-2">
+        {% blocktrans with tape=preview_tape.label %}{{ preview_object }} on {{ tape }} tape{% endblocktrans %}
+      </div>
+    {% endif %}
+  </div>
+  <div class="card-footer">
+    <form method="get">
+      {% render_field preview_form.device %}
+      {% render_field preview_form.module %}
+      {% render_field preview_form.tape %}
+      <div class="text-end">
+        <button type="submit" class="btn btn-outline-primary">{% trans "Update preview" %}</button>
+      </div>
+    </form>
+  </div>
+  {% include 'netbox_asset_labels/inc/preview_style.html' %}
+{% endblock panel_content %}

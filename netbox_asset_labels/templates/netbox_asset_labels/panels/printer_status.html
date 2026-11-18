@@ -1,0 +1,10 @@
+{% extends "ui/panels/_base.html" %}
+{% load i18n %}
+
+{% block panel_content %}
+  <div hx-get="{% url 'plugins:netbox_asset_labels:labelprinter_status' pk=object.pk %}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="card-body text-secondary">
+      <span class="spinner-border spinner-border-sm" role="status"></span> {% trans "Contacting printer…" %}
+    </div>
+  </div>
+{% endblock panel_content %}
