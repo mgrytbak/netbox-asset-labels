@@ -1,6 +1,6 @@
 # NetBox Asset Labels
 
-A NetBox plugin that prints asset labels for **devices and modules** on Brother P-touch label printers over the network.
+A NetBox plugin that prints asset labels for **devices and modules** on Brother P-touch label printers over the network or locally for the user.
 
 - A **Print Label** button on device and module pages, and a **Print Labels** button on the device and module lists. The list button prints the selected rows, or everything matching the current filters when nothing is selected.
 - Each print shows a preview of every label before anything is printed.
@@ -14,8 +14,8 @@ A NetBox plugin that prints asset labels for **devices and modules** on Brother 
 
 Requires NetBox 4.7 or later.
 
-> [!WARNING]
-> **AI disclaimer:** AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
+> [!AI disclaimer]
+> AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
 
 ## Supported printers
 
