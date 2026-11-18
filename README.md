@@ -17,6 +17,20 @@ Requires NetBox 4.7 or later.
 > [!AI disclaimer]
 > AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
 
+## Screenshots
+
+**Print Label** button on a device page:
+
+![Device page with the Print Label button](docs/images/print-label-button.png)
+
+The print page, with output options and a preview of each label:
+
+![Print Labels page with three device labels previewed on 12 mm tape](docs/images/print-labels.png)
+
+A label template, with a live preview for any device or module:
+
+![Label template detail page with its preview, text template and assignment](docs/images/label-template.png)
+
 ## Printers
 
 Tested with the **PT-E550W**.
