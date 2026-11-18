@@ -17,14 +17,25 @@ Requires NetBox 4.7 or later.
 > [!AI disclaimer]
 > AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
 
-## Supported printers
+## Printers
 
-Brother P-touch printers with a 128-pin, 180 dpi print head and a network interface:
+Tested with the **PT-E550W**.
 
-- **PT-E550W**
-- **PT-P750W**
+Other Brother P-touch printers should work if they meet these requirements:
+
+- **Print head:** 128 pins at 180 dpi, for tapes up to 24 mm.
+- **Commands:** Brother's P-touch raster command set, as described in the *Raster Command Reference PT-E550W/P750W/P710BT*. This covers print information, auto cut, half cut, margins and TIFF (PackBits) compression.
+- **Status:** the printer answers status requests with the standard 32-byte reply.
+- **Connection:**
+  - Network printing needs a network interface that accepts raw print data on TCP port 9100, as on the PT-E550W and PT-P750W.
+  - USB printing needs a USB printer interface. This makes USB-only models such as the PT-P710BT or PT-E560BT candidates, but they are untested.
+  - Bluetooth isn't supported.
 
 Tapes: 3.5, 6, 9, 12, 18 and 24 mm (TZe laminated and non-laminated).
+
+When adding a network printer that isn't in the model list, choose **Other compatible printer**. The model is only informational; the same driver is used for every model.
+
+Reports of other printers that work, or don't, are welcome.
 
 ### Network printing
 

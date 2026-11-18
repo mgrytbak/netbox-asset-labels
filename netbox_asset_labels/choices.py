@@ -8,10 +8,12 @@ from . import layout, ptouch
 class PrinterModelChoices(ChoiceSet):
     PT_E550W = 'pt-e550w'
     PT_P750W = 'pt-p750w'
+    OTHER = 'other'
 
     CHOICES = (
         (PT_E550W, 'PT-E550W'),
         (PT_P750W, 'PT-P750W'),
+        (OTHER, _('Other compatible printer')),
     )
 
 
