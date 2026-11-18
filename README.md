@@ -14,8 +14,8 @@ A NetBox plugin that prints asset labels for **devices and modules** on Brother 
 
 Requires NetBox 4.7 or later.
 
-> [!AI disclaimer]
-> AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
+> [!WARNING]
+> **AI disclaimer:** AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
 
 ## Printers
 
@@ -73,7 +73,7 @@ Print the file with Brother's driver or P-touch Editor, with the matching tape s
 Install the plugin into NetBox's virtualenv, from a release tag or a checkout:
 
 ```bash
-pip install https://github.com/mgrytbak/netbox-asset-labels/archive/refs/tags/v0.2.0.tar.gz
+pip install https://github.com/mgrytbak/netbox-asset-labels/archive/refs/tags/v0.1.0.tar.gz
 # or
 pip install /path/to/netbox-asset-labels
 ```
@@ -91,7 +91,7 @@ Then run `manage.py migrate` and restart NetBox.
 Add the plugin to `plugin_requirements.txt` and enable it in `configuration/plugins.py`, as described in [Using Netbox Plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins):
 
 ```txt
-netbox-asset-labels @ https://github.com/mgrytbak/netbox-asset-labels/archive/refs/tags/v0.2.0.tar.gz
+netbox-asset-labels @ https://github.com/mgrytbak/netbox-asset-labels/archive/refs/tags/v0.1.0.tar.gz
 ```
 
 The NetBox image has no `git`, so use an archive URL like the one above rather than `git+https://…`.
