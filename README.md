@@ -14,8 +14,8 @@ A NetBox plugin that prints asset labels for **devices and modules** on Brother 
 
 Requires NetBox 4.7 or later.
 
-> [!AI disclaimer]
-> AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
+> [!WARNING]
+> **AI disclaimer:** AI tools were used in developing this plugin, including its code, tests and documentation. It is provided as is, without warranty or guarantee of any kind. Test it in your own environment before relying on it, and use it at your own risk.
 
 ## Screenshots
 
